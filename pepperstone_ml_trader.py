@@ -578,12 +578,21 @@ class ScalpingStrategy:
         
         return False
     
+    def count_open_positions(self):
+        """Count actual open positions in MT5 (not just tracked ones)"""
+        positions = mt5.positions_get()
+        return len(positions) if positions else 0
+    
     def run(self, auto_trade=True):
         self.check_closed_positions()
         
+        # Count actual positions in MT5 (including those from other sessions)
+        actual_position_count = self.count_open_positions()
+        
         for symbol in SYMBOLS:
-            if len(self.open_trades) >= MAX_POSITIONS:
-                print(f"[MAX] {len(self.open_trades)}/{MAX_POSITIONS} positions - skipping {symbol}")
+            # Check actual position count from MT5
+            if actual_position_count >= MAX_POSITIONS:
+                print(f"[MAX] {actual_position_count}/{MAX_POSITIONS} positions - skipping {symbol}")
                 continue
             
             # Skip if already have position in this symbol (anti-hedge protection)
@@ -604,7 +613,9 @@ class ScalpingStrategy:
                 
                 # Only trade if ML score is good enough
                 if auto_trade and strength >= 55:
-                    self.execute_signal(symbol, signal, strength, result['features'])
+                    ticket = self.execute_signal(symbol, signal, strength, result['features'])
+                    if ticket:
+                        actual_position_count += 1  # Update count after successful open
 
 class ScalpingBot:
     def __init__(self):
