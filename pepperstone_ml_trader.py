@@ -92,12 +92,12 @@ class FeatureExtractor:
         df['ema3'] = df['close'].ewm(span=3).mean()
         df['ema8'] = df['close'].ewm(span=8).mean()
         df['ema21'] = df['close'].ewm(span=21).mean()
-        df['sma50'] = df['close'].rolling(50).mean()
+        df['sma50'] = df['close'].rolling(window=50, min_periods=1).mean()
         
         # RSI
         delta = df['close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14, min_periods=1).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14, min_periods=1).mean()
         rs = gain / loss
         df['rsi'] = 100 - (100 / (1 + rs))
         
@@ -107,24 +107,24 @@ class FeatureExtractor:
         low_close = np.abs(df['low'] - df['close'].shift())
         ranges = pd.concat([high_low, high_close, low_close], axis=1)
         true_range = np.max(ranges, axis=1)
-        df['atr'] = true_range.rolling(14).mean()
+        df['atr'] = true_range.rolling(window=14, min_periods=1).mean()
         
         # Trend strength (ADX approximation)
         df['plus_dm'] = df['high'].diff()
         df['minus_dm'] = -df['low'].diff()
         df['plus_dm'] = df['plus_dm'].where((df['plus_dm'] > df['minus_dm']) & (df['plus_dm'] > 0), 0)
         df['minus_dm'] = df['minus_dm'].where((df['minus_dm'] > df['plus_dm']) & (df['minus_dm'] > 0), 0)
-        df['adx'] = (df['plus_dm'].rolling(14).mean() / df['atr'].rolling(14).mean() * 100).rolling(14).mean()
+        df['adx'] = (df['plus_dm'].rolling(window=14, min_periods=1).mean() / df['atr'].rolling(window=14, min_periods=1).mean() * 100).rolling(window=14, min_periods=1).mean()
         
         # Bollinger Bands
-        df['bb_middle'] = df['close'].rolling(20).mean()
-        df['bb_std'] = df['close'].rolling(20).std()
+        df['bb_middle'] = df['close'].rolling(window=20, min_periods=1).mean()
+        df['bb_std'] = df['close'].rolling(window=20, min_periods=1).std()
         df['bb_upper'] = df['bb_middle'] + 2 * df['bb_std']
         df['bb_lower'] = df['bb_middle'] - 2 * df['bb_std']
         df['bb_position'] = (df['close'] - df['bb_lower']) / (df['bb_upper'] - df['bb_lower'])
         
         # Volume analysis
-        df['volume_sma'] = df['tick_volume'].rolling(20).mean()
+        df['volume_sma'] = df['tick_volume'].rolling(window=20, min_periods=1).mean()
         df['volume_ratio'] = df['tick_volume'] / df['volume_sma']
         
         # Session
@@ -492,54 +492,77 @@ class ScalpingStrategy:
         
         # Process closed trades
         for ticket, trade_info in closed:
-            # Get deal history
+            # Get deal history for this position
             from_date = trade_info['entry_time'] - timedelta(hours=24)
-            deals = mt5.history_deals_get(from_date, datetime.now(timezone.utc) + timedelta(hours=1))
+            to_date = datetime.now(timezone.utc) + timedelta(hours=1)
+            deals = mt5.history_deals_get(from_date, to_date)
             
             if deals:
+                # Find the actual closing deal (the one with non-zero profit or opposite entry)
+                exit_deal = None
+                total_pnl = 0.0
+                exit_price = None
+                
                 for deal in deals:
-                    if deal.position_id == ticket or deal.order == ticket:
-                        pnl = deal.profit + deal.commission + deal.swap
-                        pips = self.calculate_pips(trade_info['symbol'], 
-                                                   trade_info['entry_price'], 
-                                                   deal.price, 
-                                                   trade_info['direction'])
-                        duration = (datetime.now(timezone.utc) - trade_info['entry_time']).total_seconds() / 60
-                        
-                        result = 'WIN' if pnl > 0 else ('BREAKEVEN' if pnl == 0 else 'LOSS')
-                        
-                        # Update ML optimizer
-                        self.ml_optimizer.update_from_trade(
-                            trade_info['symbol'],
-                            trade_info['features'],
-                            trade_info['direction'],
-                            pnl,
-                            result
-                        )
-                        
-                        # Log exit with ML features
-                        MLLogger.log_exit(
-                            ticket,
-                            trade_info['symbol'],
-                            trade_info['direction'],
-                            trade_info['entry_price'],
-                            deal.price,
-                            'TP' if result == 'WIN' and pips > 0 else ('SL' if result == 'LOSS' else 'UNKNOWN'),
-                            pnl,
-                            pips,
-                            duration,
-                            {
-                                'ml_score_at_entry': trade_info['ml_score'],
-                                'entry_rsi': trade_info['features'].get('rsi'),
-                                'entry_adx': trade_info['features'].get('adx'),
-                                'entry_session': trade_info['features'].get('session')
-                            }
-                        )
-                        
-                        print(f"[CLOSED] {trade_info['symbol']} {result} ${pnl:.2f} ({pips:.1f} pips) - ML Score was {trade_info['ml_score']}")
-                        
-                        del self.open_trades[ticket]
-                        break
+                    if deal.position_id == ticket:
+                        # Sum up all profit/swap/commission for this position
+                        total_pnl += deal.profit + deal.commission + deal.swap
+                        # Check if this is the OUT deal (closing deal has entry type 1/OUT)
+                        if deal.entry == 1:  # DEAL_ENTRY_OUT
+                            exit_deal = deal
+                            exit_price = deal.price
+                
+                # If we found the closing deal
+                if exit_deal:
+                    pnl = total_pnl
+                else:
+                    # Fallback: assume position was closed at market, use current price
+                    tick = mt5.symbol_info_tick(trade_info['symbol'])
+                    exit_price = tick.last if tick else trade_info['entry_price']
+                    pnl = total_pnl  # Use whatever profit was recorded
+                
+                if exit_price is None:
+                    exit_price = trade_info['entry_price']  # Fallback
+                
+                pips = self.calculate_pips(trade_info['symbol'], 
+                                           trade_info['entry_price'], 
+                                           exit_price, 
+                                           trade_info['direction'])
+                duration = (datetime.now(timezone.utc) - trade_info['entry_time']).total_seconds() / 60
+                
+                result = 'WIN' if pnl > 0 else ('BREAKEVEN' if pnl == 0 else 'LOSS')
+                
+                # Update ML optimizer
+                self.ml_optimizer.update_from_trade(
+                    trade_info['symbol'],
+                    trade_info['features'],
+                    trade_info['direction'],
+                    pnl,
+                    result
+                )
+                
+                # Log exit with ML features
+                MLLogger.log_exit(
+                    ticket,
+                    trade_info['symbol'],
+                    trade_info['direction'],
+                    trade_info['entry_price'],
+                    exit_price,
+                    'TP' if result == 'WIN' and pips > 0 else ('SL' if result == 'LOSS' else 'UNKNOWN'),
+                    pnl,
+                    pips,
+                    duration,
+                    {
+                        'ml_score_at_entry': trade_info['ml_score'],
+                        'entry_rsi': trade_info['features'].get('rsi'),
+                        'entry_adx': trade_info['features'].get('adx'),
+                        'entry_session': trade_info['features'].get('session')
+                    }
+                )
+                
+                print(f"[CLOSED] {trade_info['symbol']} {result} ${pnl:.2f} ({pips:.1f} pips) - ML Score was {trade_info['ml_score']}")
+                
+                del self.open_trades[ticket]
     
     def calculate_pips(self, symbol, entry, exit_price, direction):
         """Calculate pips for trade"""
