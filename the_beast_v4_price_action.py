@@ -19,8 +19,8 @@ LOT_SIZE = 0.2
 MAX_POSITIONS = 3
 RISK_PER_TRADE = 0.01
 
-SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "EURJPY", "GBPJPY", 
-           "AUDUSD", "EURGBP", "USDCHF", "AUDJPY", "XAUUSD"]
+# 6 major pairs only - maximum liquidity, lowest spread
+SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "EURJPY", "GBPJPY", "XAUUSD"]
 
 # Import universal journal
 from universal_journal import UniversalJournal
@@ -130,7 +130,7 @@ class PriceActionAnalyzer:
         vwap = PriceActionAnalyzer.calculate_vwap(df)
         
         latest = df.iloc[-1]
-        volume_confirmed = latest['volume_ratio'] > 1.5
+        volume_confirmed = latest['volume_ratio'] > 1.8  # Increased threshold for quality
         
         # VWAP distance
         vwap_distance = (latest['close'] - vwap) / vwap * 10000  # in pips
@@ -194,9 +194,9 @@ class DynamicRiskManager:
         true_range = np.max(ranges, axis=1)
         atr = true_range.rolling(14).mean().iloc[-1]
         
-        # Dynamic SL/TP (1:2 risk/reward minimum)
+        # Dynamic SL/TP (1:2.5 risk/reward for higher profitability)
         sl_distance = atr * atr_multiplier
-        tp_distance = atr * atr_multiplier * 2  # 1:2 RR
+        tp_distance = atr * atr_multiplier * 2.5  # 1:2.5 RR - target ~25 pips
         
         if 'JPY' in symbol:
             sl_distance *= 100
@@ -260,19 +260,14 @@ class MLTrader:
         if sl is None:
             return None
         
-        # Adjust lot size based on confidence
+        # Fixed lot size for discipline
         confidence = features['strength']
-        if confidence >= 80:
-            lot = LOT_SIZE * 1.5
-        elif confidence >= 60:
-            lot = LOT_SIZE
-        else:
-            lot = LOT_SIZE * 0.5
+        lot = LOT_SIZE  # Fixed 0.2 lots regardless of confidence
         
-        # Session filter - only trade London and NY
+        # Session filter - STRICT: 09:00-17:00 UTC only (London + NY core)
         hour = datetime.now(timezone.utc).hour
-        if hour < 8 or hour >= 22:  # Skip Asian and late NY
-            print(f"[SKIP] {symbol} - Outside trading hours ({hour}:00 UTC)")
+        if hour < 9 or hour >= 17:  # Skip Asian and late NY
+            print(f"[SKIP] {symbol} - Outside trading hours ({hour}:00 UTC, trade 09-17 UTC only)")
             return None
         
         request = {
