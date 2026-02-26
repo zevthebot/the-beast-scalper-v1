@@ -22,8 +22,8 @@ RISK_PER_TRADE = 0.01
 SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "EURJPY", "GBPJPY", 
            "AUDUSD", "EURGBP", "USDCHF", "AUDJPY", "XAUUSD"]
 
-# Paths
-JOURNAL_PATH = Path(r"C:\Users\Claw\.openclaw\workspace\mt5_trader\pepperstone_journal_v2.jsonl")
+# Import universal journal
+from universal_journal import UniversalJournal
 
 class PriceActionAnalyzer:
     """Detect price action patterns for scalping"""
@@ -215,42 +215,8 @@ class DynamicRiskManager:
         return sl, tp, atr
 
 
-class MLLogger:
-    """Logger for ML analysis"""
-    
-    @staticmethod
-    def log_entry(trade_data):
-        """Log entry with full context"""
-        entry = {
-            "event": "ENTRY",
-            "account": ACCOUNT,
-            "server": SERVER,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            **trade_data
-        }
-        with open(JOURNAL_PATH, 'a') as f:
-            f.write(json.dumps(entry) + '\n')
-    
-    @staticmethod
-    def log_exit(position_id, symbol, direction, entry_price, exit_price, exit_reason, pnl, pips, duration_min, ml_features=None):
-        """Log exit with results"""
-        exit_data = {
-            "event": "EXIT",
-            "account": ACCOUNT,
-            "position_id": position_id,
-            "symbol": symbol,
-            "direction": direction,
-            "entry_price": entry_price,
-            "exit_price": exit_price,
-            "exit_reason": exit_reason,
-            "pnl": pnl,
-            "pips": pips,
-            "duration_min": duration_min,
-            "exit_time": datetime.now(timezone.utc).isoformat(),
-            "ml_features": ml_features or {}
-        }
-        with open(JOURNAL_PATH, 'a') as f:
-            f.write(json.dumps(exit_data) + '\n')
+# Use UniversalJournal for all logging
+# All trades from all versions go to universal_trade_journal.jsonl
 
 
 class MLTrader:
@@ -331,22 +297,25 @@ class MLTrader:
             print(f"           Pattern: {features['pattern']}, Score: {confidence}")
             print(f"           SL: {sl:.5f}, TP: {tp:.5f}, ATR: {atr:.5f}")
             
-            # Log entry
-            trade_data = {
-                'position_id': result.order,
-                'symbol': symbol,
-                'direction': direction,
-                'lot_size': lot,
-                'entry_price': result.price,
-                'sl': sl,
-                'tp': tp,
-                'ml_score': confidence,
-                'pattern': features['pattern'],
-                'volume_ratio': features['volume_ratio'],
-                'vwap_distance': features.get('vwap_distance_pips'),
-                'atr': atr
-            }
-            MLLogger.log_entry(trade_data)
+            # Log entry to universal journal
+            UniversalJournal.log_entry(
+                account_id=ACCOUNT,
+                server=SERVER,
+                symbol=symbol,
+                direction=direction,
+                lot_size=lot,
+                entry_price=result.price,
+                sl=sl,
+                tp=tp,
+                strategy=features['pattern'],
+                bot_version="4.0",
+                ml_score=confidence,
+                features={
+                    'volume_ratio': features['volume_ratio'],
+                    'vwap_distance': features.get('vwap_distance_pips'),
+                    'atr': atr
+                }
+            )
             
             # Track position
             self.positions[result.order] = {
@@ -405,17 +374,19 @@ class MLTrader:
                     duration = (datetime.now(timezone.utc) - trade_info['entry_time']).total_seconds() / 60
                     result = 'WIN' if pnl > 0 else ('BREAKEVEN' if pnl == 0 else 'LOSS')
                     
-                    MLLogger.log_exit(
-                        ticket,
-                        trade_info['symbol'],
-                        trade_info['direction'],
-                        trade_info['entry_price'],
-                        exit_price,
-                        'TP' if result == 'WIN' and pips > 0 else ('SL' if result == 'LOSS' else 'UNKNOWN'),
-                        pnl,
-                        pips,
-                        duration,
-                        {
+                    UniversalJournal.log_exit(
+                        position_id=ticket,
+                        account_id=ACCOUNT,
+                        symbol=trade_info['symbol'],
+                        direction=trade_info['direction'],
+                        entry_price=trade_info['entry_price'],
+                        exit_price=exit_price,
+                        exit_reason='TP' if result == 'WIN' and pips > 0 else ('SL' if result == 'LOSS' else 'UNKNOWN'),
+                        pnl=pnl,
+                        pips=pips,
+                        duration_min=duration,
+                        bot_version="4.0",
+                        ml_features={
                             'ml_score_at_entry': trade_info['ml_score'],
                             'pattern': trade_info['pattern']
                         }
