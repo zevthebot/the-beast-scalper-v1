@@ -1,0 +1,22 @@
+{
+  "account": 541144102,
+  "server": "FTMO-Server4",
+  "balance": 9973.14,
+  "equity": 9973.14,
+  "margin": 0.0,
+  "free_margin": 9973.14,
+  "profit": 0.0,
+  "currency": "USD",
+  "profit_pct": -0.002686000000000058,
+  "daily_loss_pct": 0.0,
+  "phase1_progress": "-0.3% / 10%",
+  "positions_count": 0,
+  "positions": [],
+  "timestamp": "2026-02-20T15:22:30.709927",
+  "ftmo_limits": {
+    "max_daily_loss_pct": 0.04,
+    "max_total_loss_pct": 0.08,
+    "max_positions": 10,
+    "profit_target": 0.1
+  }
+}

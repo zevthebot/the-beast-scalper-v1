@@ -1,0 +1,104 @@
+{
+  "name": "The Beast",
+  "version": "1.0",
+  "created": "2026-02-19",
+  "status": "PROVEN",
+  "account": {
+    "login": 541144102,
+    "server": "FTMO-Server4",
+    "balance_start": 10000,
+    "balance_current": 10589.69,
+    "profit_pct": 5.9,
+    "target_pct": 10
+  },
+  "architecture": {
+    "bot": "Python v1 Continuous Mode",
+    "ea": "SimpleAIBot_EA_v2 (Protection Only)",
+    "execution": "Continuous (not cron)",
+    "monitoring": "FTMO_Journal_Monitor (30 min)"
+  },
+  "strategies": [
+    {
+      "name": "FVG",
+      "priority": 4,
+      "timeframe": "M15",
+      "min_confidence": 50,
+      "max_confidence": 85,
+      "sl_pips": 40,
+      "tp_pips": 60
+    },
+    {
+      "name": "Breakout",
+      "priority": 3,
+      "timeframe": "M30",
+      "min_confidence": 50,
+      "max_confidence": 90,
+      "sl_pips": 40,
+      "tp_pips": 60
+    },
+    {
+      "name": "Range",
+      "priority": 2,
+      "timeframe": "M15",
+      "min_confidence": 50,
+      "max_confidence": 100,
+      "sl_pips": 50,
+      "tp_pips": 50
+    },
+    {
+      "name": "Trend",
+      "priority": 1,
+      "timeframe": "M15",
+      "min_confidence": 65,
+      "max_confidence": 100,
+      "sl_pips": 30,
+      "tp_pips": 60
+    }
+  ],
+  "risk_management": {
+    "max_positions": 10,
+    "max_daily_loss_pct": 4,
+    "max_total_loss_pct": 8,
+    "tiered_confidence": true,
+    "adaptive_lot_sizing": true,
+    "breakeven_pips": 15,
+    "trailing_tiers": [
+      {"profit_pips": 30, "trail_to": 15},
+      {"profit_pips": 50, "trail_to": 30},
+      {"profit_pips": 80, "trail_to": 50}
+    ],
+    "risk_levels": {
+      "safe": {"daily_loss": 1, "max_pos": 10, "min_conf": 40, "lot_mult": 1.0},
+      "caution": {"daily_loss": 2, "max_pos": 8, "min_conf": 50, "lot_mult": 1.0},
+      "warning": {"daily_loss": 3, "max_pos": 5, "min_conf": 60, "lot_mult": 0.75},
+      "danger": {"daily_loss": 4, "max_pos": 2, "min_conf": 75, "lot_mult": 0.5},
+      "critical": {"daily_loss": 5, "max_pos": 0, "min_conf": 100, "lot_mult": 0.0}
+    }
+  },
+  "symbols": [
+    "EURUSD", "GBPUSD", "USDJPY", "XAUUSD",
+    "EURJPY", "GBPJPY", "AUDJPY", "EURGBP",
+    "USDCAD", "AUDUSD", "NZDUSD", "GBPAUD"
+  ],
+  "timing": {
+    "scan_interval_min": 5,
+    "protection_interval_min": 2,
+    "report_interval_min": 30,
+    "ftmo_reset_hour": 0,
+    "ftmo_reset_timezone": "Europe/Prague"
+  },
+  "files": {
+    "main_bot": "bot_controller.py",
+    "ea_source": "SimpleAIBot_EA_v2.mq5",
+    "journal": "trade_journal.jsonl",
+    "usage_doc": "USAGE.md",
+    "backup_folder": "THE_BEAST/"
+  },
+  "performance": {
+    "best_day_pct": 5.0,
+    "current_profit_pct": 5.9,
+    "days_active": 4,
+    "positions_total": 15,
+    "win_rate": "~60%"
+  }
+}

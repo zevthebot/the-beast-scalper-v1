@@ -1,0 +1,17 @@
+{
+  "last_check": "2026-02-25T08:47:49.458651+00:00",
+  "last_balance": 9973.14,
+  "last_equity": 9973.14,
+  "last_positions": [],
+  "last_position_count": 0,
+  "milestones_reported": [
+    2,
+    4,
+    5,
+    6
+  ],
+  "trades_logged": 16,
+  "daily_high_equity": 10542.83,
+  "account": 541144102,
+  "phase": null
+}

@@ -1,0 +1,92 @@
+{
+  "trade_count": 38,
+  "win_count": 0,
+  "loss_count": 38,
+  "total_pnl": 0.0,
+  "symbol_performance": {
+    "EURJPY": {
+      "wins": 0,
+      "losses": 4,
+      "pnl": 0.0
+    },
+    "GBPUSD": {
+      "wins": 0,
+      "losses": 5,
+      "pnl": 0.0
+    },
+    "AUDUSD": {
+      "wins": 0,
+      "losses": 3,
+      "pnl": 0.0
+    },
+    "USDJPY": {
+      "wins": 0,
+      "losses": 9,
+      "pnl": 0.0
+    },
+    "GBPJPY": {
+      "wins": 0,
+      "losses": 6,
+      "pnl": 0.0
+    },
+    "AUDJPY": {
+      "wins": 0,
+      "losses": 5,
+      "pnl": 0.0
+    },
+    "USDCHF": {
+      "wins": 0,
+      "losses": 2,
+      "pnl": 0.0
+    },
+    "EURUSD": {
+      "wins": 0,
+      "losses": 4,
+      "pnl": 0.0
+    }
+  },
+  "session_performance": {
+    "London_NY_Overlap": {
+      "wins": 0,
+      "losses": 18
+    },
+    "NY": {
+      "wins": 0,
+      "losses": 4
+    },
+    "Off_Hours": {
+      "wins": 0,
+      "losses": 3
+    },
+    "Asian": {
+      "wins": 0,
+      "losses": 7
+    },
+    "London": {
+      "wins": 0,
+      "losses": 6
+    }
+  },
+  "rsi_performance": {
+    "low": {
+      "wins": 0,
+      "losses": 8
+    },
+    "mid": {
+      "wins": 0,
+      "losses": 21
+    },
+    "high": {
+      "wins": 0,
+      "losses": 9
+    }
+  },
+  "current_params": {
+    "min_rsi": 35,
+    "max_rsi": 65,
+    "min_adx": 20,
+    "min_volume_ratio": 0.8,
+    "trend_filter": false
+  },
+  "last_optimized": "2026-02-26T05:06:11.798204"
+}

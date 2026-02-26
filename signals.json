@@ -1,0 +1,43 @@
+{
+  "_comment": "Template for MT5 signal export - will be overwritten by EA",
+  "timestamp": "2026-02-13T08:40:00",
+  "account": {
+    "balance": 1076.83,
+    "equity": 1074.72,
+    "margin": 150.50,
+    "free_margin": 924.22,
+    "profit": -2.01,
+    "currency": "EUR"
+  },
+  "signals": [
+    {
+      "symbol": "EURUSD",
+      "strategy": "RANGE",
+      "signal": "BUY",
+      "strength": "MODERATE",
+      "entry": 1.18568,
+      "sl": 1.18200,
+      "tp": 1.19000,
+      "indicators": {
+        "ma20": 1.18650,
+        "ma50": 1.18700,
+        "rsi": 42.5,
+        "adx": 18.3,
+        "bb_upper": 1.18900,
+        "bb_lower": 1.18400
+      }
+    }
+  ],
+  "positions": [
+    {
+      "ticket": 56509951,
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "volume": 0.01,
+      "open_price": 4953.86000,
+      "sl": 4948.86,
+      "tp": 4963.86,
+      "profit": 2.43
+    }
+  ]
+}

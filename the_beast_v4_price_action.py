@@ -236,7 +236,32 @@ class MLTrader:
             print(f"Connected to {SERVER}")
             print(f"Balance: ${account_info.balance:.2f}")
             print(f"Equity: ${account_info.equity:.2f}")
+        
+        # Sync with MT5 - track existing positions
+        self.sync_with_mt5()
         return True
+    
+    def sync_with_mt5(self):
+        """Sync with MT5 to track existing open positions"""
+        print("\n[SYNC] Checking for existing positions in MT5...")
+        positions = mt5.positions_get()
+        if positions:
+            print(f"[SYNC] Found {len(positions)} open positions, adding to tracking...")
+            for pos in positions:
+                if pos.ticket not in self.positions:
+                    direction = 'BUY' if pos.type == mt5.ORDER_TYPE_BUY else 'SELL'
+                    self.positions[pos.ticket] = {
+                        'symbol': pos.symbol,
+                        'direction': direction,
+                        'entry_price': pos.price_open,
+                        'entry_time': datetime.now(timezone.utc),  # Approximate
+                        'ml_score': 0,  # Unknown for pre-existing
+                        'pattern': 'PREEXISTING'
+                    }
+                    print(f"[SYNC] Tracking: {pos.symbol} {direction} (Ticket: {pos.ticket})")
+            print(f"[SYNC] Now tracking {len(self.positions)} positions\n")
+        else:
+            print("[SYNC] No existing positions found\n")
     
     def count_positions(self):
         positions = mt5.positions_get()

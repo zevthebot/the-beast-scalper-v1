@@ -1,0 +1,111 @@
+[2026-02-19 12:50:31] ============================================================
+[2026-02-19 12:50:31] Starting The Beast Bot
+[2026-02-19 12:50:31] ============================================================
+[2026-02-19 12:50:31] Bot started with PID: 26304
+[12:50:31] [REPORT] Scan interval: 5 minutes (find new setups)
+[12:50:32] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[2026-02-19 13:21:56] ============================================================
+[2026-02-19 13:21:56] Starting The Beast Bot
+[2026-02-19 13:21:56] ============================================================
+[2026-02-19 13:21:56] Bot started with PID: 25352
+[13:21:56] [REPORT] Scan interval: 5 minutes (find new setups)
+[13:21:57] [EXECUTED] EURUSD BUY | Lot: 0.2 | SL: 40 | TP: 60 | Conf: 68%
+[13:21:57] [EXECUTED] EURUSD BUY | RANGE | Conf: 67.9%
+[13:21:58] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[2026-02-19 13:43:07] ============================================================
+[2026-02-19 13:43:07] Starting The Beast Bot
+[2026-02-19 13:43:07] ============================================================
+[2026-02-19 13:43:07] Bot started with PID: 1120
+[13:43:07] [REPORT] Scan interval: 5 minutes (find new setups)
+[13:43:09] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[2026-02-19 13:58:08] ============================================================
+[2026-02-19 13:58:08] Starting The Beast Bot
+[2026-02-19 13:58:08] ============================================================
+[2026-02-19 13:58:08] Bot started with PID: 9136
+[13:58:08] [REPORT] Scan interval: 5 minutes (find new setups)
+[13:58:09] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[2026-02-19 14:03:46] Bot exited with code: 3221225786
+[2026-02-19 14:03:46] Bot crashed (exit code: 3221225786). Restart #1 in 10 seconds...
+[2026-02-19 14:03:46] Bot exited with code: 3221225786
+[2026-02-19 14:03:46] Bot crashed (exit code: 3221225786). Restart #1 in 10 seconds...
+[2026-02-19 14:03:56] ============================================================
+[2026-02-19 14:03:56] Starting The Beast Bot
+[2026-02-19 14:03:56] ============================================================
+[2026-02-19 14:03:56] Bot started with PID: 26576
+[2026-02-19 14:03:56] ============================================================
+[2026-02-19 14:03:56] Starting The Beast Bot
+[2026-02-19 14:03:56] ============================================================
+[2026-02-19 14:03:56] Bot started with PID: 6448
+[14:03:56] [REPORT] Scan interval: 5 minutes (find new setups)
+[14:03:57] [REPORT] Scan interval: 5 minutes (find new setups)
+[14:03:58] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[14:03:58] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[2026-02-19 14:14:33] ============================================================
+[2026-02-19 14:14:33] Starting The Beast Bot
+[2026-02-19 14:14:33] ============================================================
+[2026-02-19 14:14:33] Bot started with PID: 17328
+[14:14:34] [REPORT] Scan interval: 5 minutes (find new setups)
+[14:14:35] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[14:34:04] [REPORT] FTMO PHASE 1 REPORT - Cycle #7
+[14:34:05] [REPORT] FTMO PHASE 1 REPORT - Cycle #7
+[14:44:42] [REPORT] FTMO PHASE 1 REPORT - Cycle #7
+[15:04:11] [REPORT] FTMO PHASE 1 REPORT - Cycle #13
+[15:04:12] [REPORT] FTMO PHASE 1 REPORT - Cycle #13
+[2026-02-19 15:14:46] ============================================================
+[2026-02-19 15:14:46] Starting The Beast Bot
+[2026-02-19 15:14:46] ============================================================
+[2026-02-19 15:14:46] Bot started with PID: 24868
+[15:14:47] [REPORT] Scan interval: 5 minutes (find new setups)
+[15:14:48] [EXECUTED] GBPJPY SELL | Lot: 0.2 | SL: 40 | TP: 60 | Conf: 60%
+[15:14:48] [EXECUTED] GBPJPY SELL | FVG | Conf: 60.4%
+[15:14:48] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[15:14:49] [REPORT] FTMO PHASE 1 REPORT - Cycle #13
+[2026-02-19 15:28:19] ============================================================
+[2026-02-19 15:28:19] Starting The Beast Bot
+[2026-02-19 15:28:19] ============================================================
+[2026-02-19 15:28:19] Bot started with PID: 8692
+[15:28:20] [REPORT] Scan interval: 5 minutes (find new setups)
+[15:28:21] [REPORT] FTMO PHASE 1 REPORT - Cycle #1
+[15:34:18] [REPORT] FTMO PHASE 1 REPORT - Cycle #19
+[15:34:18] [REPORT] FTMO PHASE 1 REPORT - Cycle #19
+[15:39:19] [ERROR] Order failed: 10019 - No money
+[15:39:20] [ERROR] Order failed: 10019 - No money
+[15:39:54] [ERROR] Order failed: 10019 - No money
+[15:39:54] [ERROR] Order failed: 10019 - No money
+[15:43:25] [ERROR] Order failed: 10019 - No money
+[15:44:20] [ERROR] Order failed: 10019 - No money
+[15:44:21] [ERROR] Order failed: 10019 - No money
+[15:44:55] [ERROR] Order failed: 10019 - No money
+[15:44:55] [REPORT] FTMO PHASE 1 REPORT - Cycle #7
+[15:44:56] [ERROR] Order failed: 10019 - No money
+[15:44:56] [REPORT] FTMO PHASE 1 REPORT - Cycle #19
+[15:49:57] [EXECUTED] AUDJPY SELL | Lot: 0.5 | SL: 30 | TP: 60 | Conf: 100%
+[15:49:57] [EXECUTED] AUDJPY SELL | TREND | Conf: 100.0%
+[15:58:28] [REPORT] FTMO PHASE 1 REPORT - Cycle #7
+[16:03:29] [ERROR] Order failed: 10019 - No money
+[16:04:25] [ERROR] Order failed: 10019 - No money
+[16:04:25] [REPORT] FTMO PHASE 1 REPORT - Cycle #25
+[16:04:25] [ERROR] Order failed: 10019 - No money
+[16:04:25] [REPORT] FTMO PHASE 1 REPORT - Cycle #25
+[16:05:00] [ERROR] Order failed: 10019 - No money
+[16:05:00] [ERROR] Order failed: 10019 - No money
+[16:08:30] [ERROR] Order failed: 10019 - No money
+[16:09:26] [ERROR] Order failed: 10019 - No money
+[16:09:26] [ERROR] Order failed: 10019 - No money
+[16:10:01] [ERROR] Order failed: 10019 - No money
+[16:10:01] [ERROR] Order failed: 10019 - No money
+[16:13:31] [ERROR] Order failed: 10019 - No money
+[16:14:27] [ERROR] Order failed: 10019 - No money
+[16:14:28] [ERROR] Order failed: 10019 - No money
+[16:15:02] [REPORT] FTMO PHASE 1 REPORT - Cycle #13
+[16:15:03] [REPORT] FTMO PHASE 1 REPORT - Cycle #25
+[2026-02-19 16:22:47] Bot exited with code: 4294967295
+[2026-02-19 16:22:47] Bot crashed (exit code: 4294967295). Restart #2 in 10 seconds...
+[2026-02-19 16:22:47] Bot exited with code: 4294967295
+[2026-02-19 16:22:47] Bot crashed (exit code: 4294967295). Restart #1 in 10 seconds...
+[2026-02-19 16:43:07] ============================================================
+[2026-02-19 16:43:07] Starting The Beast Bot
+[2026-02-19 16:43:07] ============================================================
+[2026-02-19 16:43:07] Bot started with PID: 4856
+[16:43:08] [REPORT] Scan interval: 5 minutes (find new setups)
+[16:43:09] [REPORT] FTMO PHASE 1 REPORT - Cycle #1

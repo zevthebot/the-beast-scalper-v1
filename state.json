@@ -1,0 +1,19 @@
+{
+  "last_scan": "2026-02-13T09:09:51.539142",
+  "positions_at_last_scan": 6,
+  "active_symbols": [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "EURJPY",
+    "AUDJPY",
+    "EURGBP"
+  ],
+  "daily_stats": {
+    "trades_today": 3,
+    "profit_today": 7.68,
+    "max_drawdown_today": 1.2
+  },
+  "session": "LONDON",
+  "test_value": 123
+}
