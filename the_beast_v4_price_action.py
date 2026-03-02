@@ -15,12 +15,12 @@ from pathlib import Path
 # Config
 ACCOUNT = 62108425
 SERVER = "PepperstoneUK-Demo"
-LOT_SIZE = 0.2
-MAX_POSITIONS = 3
+LOT_SIZE = 1.0
+MAX_POSITIONS = 10
 RISK_PER_TRADE = 0.01
 
 # 6 major pairs only - maximum liquidity, lowest spread
-SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "EURJPY", "GBPJPY", "XAUUSD"]
+SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "GBPJPY", "AUDUSD", "EURGBP"]
 
 # Import universal journal
 from universal_journal import UniversalJournal
@@ -110,6 +110,63 @@ class PriceActionAnalyzer:
         return vwap.iloc[-1]
     
     @staticmethod
+    def calc_rsi(series, period=14):
+        """Calculate RSI"""
+        delta = series.diff()
+        gain = delta.where(delta > 0, 0).rolling(period, min_periods=1).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(period, min_periods=1).mean()
+        rs = gain / loss
+        return 100 - (100 / (1 + rs))
+
+    @staticmethod
+    def calc_adx(df, period=14):
+        """Calculate ADX (trend strength)"""
+        plus_dm = df['high'].diff()
+        minus_dm = -df['low'].diff()
+        plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0)
+        minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0)
+
+        high_low = df['high'] - df['low']
+        high_close = np.abs(df['high'] - df['close'].shift())
+        low_close = np.abs(df['low'] - df['close'].shift())
+        tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+
+        atr = tr.rolling(period, min_periods=1).mean()
+        plus_di = (plus_dm.rolling(period, min_periods=1).mean() / atr) * 100
+        minus_di = (minus_dm.rolling(period, min_periods=1).mean() / atr) * 100
+        dx = (np.abs(plus_di - minus_di) / (plus_di + minus_di)) * 100
+        adx = dx.rolling(period, min_periods=1).mean()
+        return adx
+
+    @staticmethod
+    def get_h4_trend(symbol):
+        """Get H4 trend direction"""
+        rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 30)
+        if rates is None or len(rates) < 21:
+            return 'UNKNOWN'
+        df = pd.DataFrame(rates)
+        ema8 = df['close'].ewm(span=8).mean().iloc[-1]
+        ema21 = df['close'].ewm(span=21).mean().iloc[-1]
+        if ema8 > ema21:
+            return 'BULLISH'
+        elif ema8 < ema21:
+            return 'BEARISH'
+        return 'FLAT'
+
+    @staticmethod
+    def get_session(hour_utc):
+        """Map UTC hour to session name"""
+        if 0 <= hour_utc < 8:
+            return 'Asian'
+        elif 8 <= hour_utc < 13:
+            return 'London'
+        elif 13 <= hour_utc < 17:
+            return 'London_NY_Overlap'
+        elif 17 <= hour_utc < 22:
+            return 'NY'
+        return 'Off_Hours'
+
+    @staticmethod
     def analyze(symbol):
         """Main analysis function - combines all patterns"""
         rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 50)
@@ -122,7 +179,18 @@ class PriceActionAnalyzer:
         df['sma20'] = df['close'].rolling(20).mean()
         df['volume_sma'] = df['tick_volume'].rolling(20).mean()
         df['volume_ratio'] = df['tick_volume'] / df['volume_sma']
-        
+        df['ema8'] = df['close'].ewm(span=8).mean()
+        df['ema21'] = df['close'].ewm(span=21).mean()
+        df['rsi'] = PriceActionAnalyzer.calc_rsi(df['close'])
+        df['adx'] = PriceActionAnalyzer.calc_adx(df)
+
+        # ATR
+        high_low = df['high'] - df['low']
+        high_close = np.abs(df['high'] - df['close'].shift())
+        low_close = np.abs(df['low'] - df['close'].shift())
+        tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+        df['atr'] = tr.rolling(14, min_periods=1).mean()
+
         # Price action patterns
         pin_bar = PriceActionAnalyzer.detect_pin_bar(df)
         engulfing = PriceActionAnalyzer.detect_engulfing(df)
@@ -130,10 +198,16 @@ class PriceActionAnalyzer:
         vwap = PriceActionAnalyzer.calculate_vwap(df)
         
         latest = df.iloc[-1]
-        volume_confirmed = latest['volume_ratio'] > 1.8  # Increased threshold for quality
+        volume_confirmed = latest['volume_ratio'] > 0.6  # Reduced threshold for early session entries
         
         # VWAP distance
         vwap_distance = (latest['close'] - vwap) / vwap * 10000  # in pips
+
+        # Pip multiplier
+        pip_mult = 100 if ('JPY' in symbol or 'XAU' in symbol) else 10000
+        atr_pips = float(latest['atr'] * pip_mult)
+
+        now_utc = datetime.now(timezone.utc)
         
         features = {
             'close': float(latest['close']),
@@ -143,7 +217,17 @@ class PriceActionAnalyzer:
             'volume_confirmed': volume_confirmed,
             'pattern': None,
             'signal': None,
-            'strength': 0
+            'strength': 0,
+            # --- rich features for journal ---
+            'adx': float(latest['adx']) if not pd.isna(latest['adx']) else 0.0,
+            'atr_pips': atr_pips,
+            'rsi': float(latest['rsi']) if not pd.isna(latest['rsi']) else 50.0,
+            'session': PriceActionAnalyzer.get_session(now_utc.hour),
+            'hour_utc': now_utc.hour,
+            'day_of_week': now_utc.strftime('%A'),
+            'h4_trend': PriceActionAnalyzer.get_h4_trend(symbol),
+            'price_vs_ema8': float((latest['close'] - latest['ema8']) / latest['ema8'] * 10000),
+            'price_vs_ema21': float((latest['close'] - latest['ema21']) / latest['ema21'] * 10000),
         }
         
         # Pattern priority: Pin Bar > Engulfing > Breakout
@@ -157,7 +241,7 @@ class PriceActionAnalyzer:
             features['strength'] = min(engulfing['strength'] * 30, 100)
             features['signal'] = 'BUY' if 'BULLISH' in engulfing['pattern'] else 'SELL'
             
-        elif breakout and volume_confirmed and latest['volume_ratio'] > 2.0:
+        elif breakout and volume_confirmed and latest['volume_ratio'] > 1.5:
             # Only take breakouts with strong volume
             features['pattern'] = breakout['pattern']
             features['strength'] = 70  # Breakouts are strong but riskier
@@ -194,16 +278,14 @@ class DynamicRiskManager:
         true_range = np.max(ranges, axis=1)
         atr = true_range.rolling(14).mean().iloc[-1]
         
-        # Dynamic SL/TP (1:2.5 risk/reward for higher profitability)
-        sl_distance = atr * atr_multiplier
-        tp_distance = atr * atr_multiplier * 2.5  # 1:2.5 RR - target ~25 pips
+        # Calculate max 10 pips distance in price units
+        # Hard limit to prevent huge SL/TP during high volatility
+        pip_value = 0.01 if ('JPY' in symbol or 'XAU' in symbol) else 0.0001
+        max_distance = 10 * pip_value  # 10 pips max
         
-        if 'JPY' in symbol:
-            sl_distance *= 100
-            tp_distance *= 100
-        else:
-            sl_distance *= 10000
-            tp_distance *= 10000
+        # Use ATR if smaller, otherwise cap at 10 pips
+        sl_distance = min(atr * 1.0, max_distance)
+        tp_distance = min(atr * 1.0, max_distance)  # Same = exact 1:1 RR
         
         if direction == 'BUY':
             sl = entry_price - sl_distance
@@ -289,11 +371,9 @@ class MLTrader:
         confidence = features['strength']
         lot = LOT_SIZE  # Fixed 0.2 lots regardless of confidence
         
-        # Session filter - STRICT: 09:00-17:00 UTC only (London + NY core)
-        hour = datetime.now(timezone.utc).hour
-        if hour < 9 or hour >= 17:  # Skip Asian and late NY
-            print(f"[SKIP] {symbol} - Outside trading hours ({hour}:00 UTC, trade 09-17 UTC only)")
-            return None
+        # Session filter - COMPLETELY DISABLED
+        # Trading allowed 24/7
+        pass
         
         request = {
             'action': mt5.TRADE_ACTION_DEAL,
@@ -317,7 +397,13 @@ class MLTrader:
             print(f"           Pattern: {features['pattern']}, Score: {confidence}")
             print(f"           SL: {sl:.5f}, TP: {tp:.5f}, ATR: {atr:.5f}")
             
-            # Log entry to universal journal
+            # Calculate SL/TP in pips and planned RR
+            pip_mult = 100 if ('JPY' in symbol or 'XAU' in symbol) else 10000
+            sl_pips = abs(result.price - sl) * pip_mult
+            tp_pips = abs(tp - result.price) * pip_mult
+            rr_planned = tp_pips / sl_pips if sl_pips > 0 else 0.0
+
+            # Log entry to universal journal with rich features
             UniversalJournal.log_entry(
                 account_id=ACCOUNT,
                 server=SERVER,
@@ -331,20 +417,40 @@ class MLTrader:
                 bot_version="4.0",
                 ml_score=confidence,
                 features={
-                    'volume_ratio': features['volume_ratio'],
-                    'vwap_distance': features.get('vwap_distance_pips'),
-                    'atr': atr
-                }
+                    'adx': features.get('adx'),
+                    'atr_pips': features.get('atr_pips'),
+                    'rsi': features.get('rsi'),
+                    'volume_ratio': features.get('volume_ratio'),
+                    'session': features.get('session'),
+                    'hour_utc': features.get('hour_utc'),
+                    'day_of_week': features.get('day_of_week'),
+                    'h4_trend': features.get('h4_trend'),
+                    'vwap_distance_pips': features.get('vwap_distance_pips'),
+                    'price_vs_ema8': features.get('price_vs_ema8'),
+                    'price_vs_ema21': features.get('price_vs_ema21'),
+                    'sl_pips': round(sl_pips, 1),
+                    'tp_pips': round(tp_pips, 1),
+                    'rr_planned': round(rr_planned, 2),
+                },
+                position_id=result.order
             )
             
-            # Track position
+            # Track position (with MAE/MFE tracking)
             self.positions[result.order] = {
                 'symbol': symbol,
                 'direction': direction,
                 'entry_price': result.price,
                 'entry_time': datetime.now(timezone.utc),
                 'ml_score': confidence,
-                'pattern': features['pattern']
+                'pattern': features['pattern'],
+                'sl': sl,
+                'tp': tp,
+                'sl_pips': sl_pips,
+                'tp_pips': tp_pips,
+                'rr_planned': rr_planned,
+                'mae_pips': 0.0,  # Maximum Adverse Excursion
+                'mfe_pips': 0.0,  # Maximum Favorable Excursion
+                'features': features,
             }
             
             return result.order
@@ -352,6 +458,35 @@ class MLTrader:
             print(f"[FAILED] {result.retcode} - {result.comment}")
             return None
     
+    def update_mae_mfe(self):
+        """Update MAE/MFE for all open positions every cycle"""
+        for ticket, info in self.positions.items():
+            # Ensure MAE/MFE fields exist (for synced positions)
+            if 'mae_pips' not in info:
+                info['mae_pips'] = 0.0
+            if 'mfe_pips' not in info:
+                info['mfe_pips'] = 0.0
+
+            tick = mt5.symbol_info_tick(info['symbol'])
+            if tick is None:
+                continue
+
+            pip_mult = 100 if ('JPY' in info['symbol'] or 'XAU' in info['symbol']) else 10000
+
+            if info['direction'] == 'BUY':
+                # For BUY: favorable = price goes UP, adverse = price goes DOWN
+                current_favorable = (tick.bid - info['entry_price']) * pip_mult
+                current_adverse = (info['entry_price'] - tick.bid) * pip_mult
+            else:
+                # For SELL: favorable = price goes DOWN, adverse = price goes UP
+                current_favorable = (info['entry_price'] - tick.ask) * pip_mult
+                current_adverse = (tick.ask - info['entry_price']) * pip_mult
+
+            if current_favorable > info['mfe_pips']:
+                info['mfe_pips'] = current_favorable
+            if current_adverse > info['mae_pips']:
+                info['mae_pips'] = current_adverse
+
     def check_closed_positions(self):
         """Check for closed positions and log results"""
         positions = mt5.positions_get()
@@ -381,11 +516,23 @@ class MLTrader:
                             exit_deal = deal
                             exit_price = deal.price
                 
-                if exit_deal:
+                # Log exit even if exit_deal not found (use available data)
+                if exit_deal or total_pnl != 0:
                     pnl = total_pnl
-                    exit_price = exit_price or trade_info['entry_price']
+                    # If exit_price not found, estimate from SL/TP or use entry
+                    if exit_price is None:
+                        if trade_info['direction'] == 'BUY':
+                            if pnl > 0:
+                                exit_price = trade_info.get('tp', trade_info['entry_price'])
+                            else:
+                                exit_price = trade_info.get('sl', trade_info['entry_price'])
+                        else:
+                            if pnl > 0:
+                                exit_price = trade_info.get('tp', trade_info['entry_price'])
+                            else:
+                                exit_price = trade_info.get('sl', trade_info['entry_price'])
                     
-                    multiplier = 10000 if 'JPY' not in trade_info['symbol'] else 100
+                    multiplier = 100 if ('JPY' in trade_info['symbol'] or 'XAU' in trade_info['symbol']) else 10000
                     if trade_info['direction'] == 'BUY':
                         pips = (exit_price - trade_info['entry_price']) * multiplier
                     else:
@@ -393,6 +540,33 @@ class MLTrader:
                     
                     duration = (datetime.now(timezone.utc) - trade_info['entry_time']).total_seconds() / 60
                     result = 'WIN' if pnl > 0 else ('BREAKEVEN' if pnl == 0 else 'LOSS')
+
+                    # Determine detailed exit reason
+                    sl_pips = trade_info.get('sl_pips', 0)
+                    tp_pips = trade_info.get('tp_pips', 0)
+                    if result == 'WIN' and abs(pips - tp_pips) < 2:
+                        exit_reason = 'TP'
+                        exit_reason_detail = 'TP_HIT'
+                    elif result == 'LOSS' and abs(abs(pips) - sl_pips) < 2:
+                        exit_reason = 'SL'
+                        exit_reason_detail = 'SL_HIT'
+                    elif result == 'WIN':
+                        exit_reason = 'MANUAL'
+                        exit_reason_detail = 'MANUAL_CLOSE_PROFIT'
+                    elif result == 'LOSS':
+                        exit_reason = 'MANUAL'
+                        exit_reason_detail = 'MANUAL_CLOSE_LOSS'
+                    else:
+                        exit_reason = 'BREAKEVEN'
+                        exit_reason_detail = 'BREAKEVEN'
+
+                    # Calculate achieved RR
+                    rr_achieved = abs(pips) / sl_pips if sl_pips > 0 and result == 'WIN' else (
+                        -(abs(pips) / sl_pips) if sl_pips > 0 else 0.0
+                    )
+
+                    mae_pips = round(trade_info.get('mae_pips', 0.0), 1)
+                    mfe_pips = round(trade_info.get('mfe_pips', 0.0), 1)
                     
                     UniversalJournal.log_exit(
                         position_id=ticket,
@@ -401,18 +575,23 @@ class MLTrader:
                         direction=trade_info['direction'],
                         entry_price=trade_info['entry_price'],
                         exit_price=exit_price,
-                        exit_reason='TP' if result == 'WIN' and pips > 0 else ('SL' if result == 'LOSS' else 'UNKNOWN'),
+                        exit_reason=exit_reason,
                         pnl=pnl,
                         pips=pips,
                         duration_min=duration,
                         bot_version="4.0",
                         ml_features={
                             'ml_score_at_entry': trade_info['ml_score'],
-                            'pattern': trade_info['pattern']
+                            'pattern': trade_info['pattern'],
+                            'mae_pips': mae_pips,
+                            'mfe_pips': mfe_pips,
+                            'rr_achieved': round(rr_achieved, 2),
+                            'rr_planned': round(trade_info.get('rr_planned', 0), 2),
+                            'exit_reason_detail': exit_reason_detail,
                         }
                     )
                     
-                    print(f"[CLOSED] {trade_info['symbol']} {result} ${pnl:.2f} ({pips:.1f} pips)")
+                    print(f"[CLOSED] {trade_info['symbol']} {result} ${pnl:.2f} ({pips:.1f} pips) MAE:{mae_pips} MFE:{mfe_pips}")
                     del self.positions[ticket]
     
     def run(self):
@@ -428,6 +607,9 @@ class MLTrader:
         while True:
             try:
                 cycle += 1
+                
+                # Update MAE/MFE for open positions
+                self.update_mae_mfe()
                 
                 # Check for closed positions first
                 self.check_closed_positions()

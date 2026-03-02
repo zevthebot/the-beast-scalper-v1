@@ -13,6 +13,7 @@ import time
 import json
 import os
 from pathlib import Path
+from universal_journal import UniversalJournal
 
 # Account - Pepperstone Demo
 ACCOUNT = 62108425
@@ -32,10 +33,8 @@ JOURNAL_PATH = Path(r"C:\Users\Claw\.openclaw\workspace\mt5_trader\pepperstone_j
 ML_STATE_PATH = Path(r"C:\Users\Claw\.openclaw\workspace\mt5_trader\pepperstone_ml_state.json")
 
 SYMBOLS = [
-    "EURUSD", "GBPUSD", "USDJPY", 
-    "EURJPY", "GBPJPY", "AUDUSD",
-    "EURGBP", "XAUUSD", "USDCHF",
-    "AUDJPY"
+    "EURUSD", "GBPUSD", "USDJPY",
+    "GBPJPY", "AUDUSD", "EURGBP"
 ]
 
 class MLLogger:
@@ -199,7 +198,8 @@ class MLOptimizer:
             'current_params': {
                 'min_rsi': 30,
                 'max_rsi': 70,
-                'min_adx': 20,
+                'min_adx': 25,
+                'min_atr_percent': 0.05,
                 'min_volume_ratio': 0.8,
                 'trend_filter': False
             },
@@ -317,6 +317,10 @@ class MLOptimizer:
         if features.get('adx', 0) > params['min_adx']:
             score += 10
         
+        # ATR filter - volatility check
+        if features.get('atr_percent', 0) > params['min_atr_percent']:
+            score += 10
+        
         # Volume filter
         if features.get('volume_ratio', 1) > params['min_volume_ratio']:
             score += 10
@@ -369,6 +373,11 @@ class ScalpingStrategy:
         features = FeatureExtractor.get_features(symbol)
         if features is None:
             return None
+        
+        # BLOCK ASIAN SESSION COMPLETELY
+        if features.get('session') == 'Asian':
+            return None
+        
         features['symbol'] = symbol
         
         # Basic EMA crossover
@@ -464,6 +473,22 @@ class ScalpingStrategy:
             }
             MLLogger.log_entry(trade_data)
             
+            UniversalJournal.log_entry(
+                account_id=ACCOUNT,
+                server=SERVER,
+                symbol=symbol,
+                direction=direction,
+                lot_size=lot,
+                entry_price=result.price,
+                sl=sl,
+                tp=tp,
+                strategy='EMA_CROSS_ML',
+                bot_version='3.0',
+                ml_score=strength,
+                features=features,
+                position_id=result.order
+            )
+            
             # Store for tracking
             self.open_trades[result.order] = {
                 'symbol': symbol,
@@ -558,6 +583,20 @@ class ScalpingStrategy:
                         'entry_adx': trade_info['features'].get('adx'),
                         'entry_session': trade_info['features'].get('session')
                     }
+                )
+                
+                UniversalJournal.log_exit(
+                    position_id=ticket,
+                    account_id=ACCOUNT,
+                    symbol=trade_info['symbol'],
+                    direction=trade_info['direction'],
+                    entry_price=trade_info['entry_price'],
+                    exit_price=exit_price,
+                    exit_reason='TP' if result == 'WIN' and pips > 0 else ('SL' if result == 'LOSS' else 'UNKNOWN'),
+                    pnl=pnl,
+                    pips=pips,
+                    duration_min=duration,
+                    bot_version='3.0'
                 )
                 
                 print(f"[CLOSED] {trade_info['symbol']} {result} ${pnl:.2f} ({pips:.1f} pips) - ML Score was {trade_info['ml_score']}")

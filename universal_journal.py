@@ -18,12 +18,14 @@ class UniversalJournal:
     
     @staticmethod
     def log_entry(account_id, server, symbol, direction, lot_size, entry_price, 
-                  sl, tp, strategy, bot_version, ml_score=None, features=None):
+                  sl, tp, strategy, bot_version, ml_score=None, features=None,
+                  position_id=None):
         """Log trade entry - works with any bot version"""
         
         entry = {
             "event": "ENTRY",
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "position_id": position_id,
             "account_id": account_id,
             "server": server,
             "symbol": symbol,

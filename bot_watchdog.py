@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 # ABSOLUTE PATH
-BOT_SCRIPT = r"C:\Users\Claw\.openclaw\workspace\mt5_trader\pepperstone_ml_trader.py"
+BOT_SCRIPT = r"C:\Users\Claw\.openclaw\workspace\mt5_trader\the_beast_v4_price_action.py"
 LOG_FILE = r"C:\Users\Claw\.openclaw\workspace\mt5_trader\watchdog.log"
 PID_FILE = r"C:\Users\Claw\.openclaw\workspace\mt5_trader\watchdog.pid"
 
